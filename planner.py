@@ -74,14 +74,14 @@ class Planner:
         else:
             return True, dict
 
-    def check_goal_in_knowledge(self, effects, values):
-        for v in values.keys():
-            for e in range(len(effects)):
-                for i in range(len(effects[e].inputs)):
-                    if effects[e].inputs[i] == v:
-                        effects[e].inputs[i] = values[v]
-        for e in effects:
-            print(e.__str__())
+    # def check_goal_in_knowledge(self, effects, values):
+    #     for v in values.keys():
+    #         for e in range(len(effects)):
+    #             for i in range(len(effects[e].inputs)):
+    #                 if effects[e].inputs[i] == v:
+    #                     effects[e].inputs[i] = values[v]
+    #     for e in effects:
+    #         print(e.__str__())
 
     def forward_search(self):
         while True:
@@ -93,27 +93,32 @@ class Planner:
         print("backward search => ")
         goal_states = self.goalStates
         while True:
+            print("_______________________________________________________")
             for operator in self.operators:
                 o = copy.deepcopy(operator)
                 goal_effects = check_satisfy(operator.effects, goal_states)
                 if len(goal_effects) > 0:
                     # inputs_values = set_value_to_inputs(goal_effects, goal_states, operator)
-                    # # print("input values => ", inputs_values)
+                    # print("input values => ", inputs_values)
                     # if inputs_values is not None:
                     # for p in operator.preconditions:
                     #     for i in range(len(p.inputs)):
                     #         if p.inputs[i] in inputs_values.keys():
                     #             pass
                     end_search, values = self.check_knowledge(operator)
+                    # print(operator.name, values)
                     if end_search:
-                        self.check_goal_in_knowledge(operator.effects, values)
-                        self.path.append(operator)
+                        # self.check_goal_in_knowledge(operator.effects, values)
+                        # print(len(self.path))
+                        # self.path.append(operator)
                         # print("the final answer ")
                         # for a in self.path:
                         #     print(a.__str__())
                         return
                     else:
                         self.path.append(operator)
+                        print(operator.name, values)
+                        print("#########", operator.__str__())
                         # print(operator.__str__())
                         # print('input values', inputs_values)
                         # for p in operator.preconditions:
