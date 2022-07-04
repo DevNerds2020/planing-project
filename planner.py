@@ -50,14 +50,24 @@ class Planner:
     def check_is_in_knowledge(self, operator):
         # print('--------------------------- operators in check is in knowledge', operator.name)
         for p in range(len(operator.preconditions)):
-            # print(operator.preconditions[p].__str__())
+            print(operator.preconditions[p].__str__())
             # print('pppppppp',operator.preconditions[p].__str__())
             for k in range(len(self.knowledge)):
+                # print('=>>>>', self.knowledge[k].__str__(), operator.preconditions[p].inputs, '<<<<==')
+
                 if operator.preconditions[p].name == self.knowledge[k].name and operator.preconditions[p].inputs == \
                         self.knowledge[k].inputs:
-                    break
+                    # print('yay')
+                    if not operator.preconditions[p].delete:
+                        break
+                    else:
+                        return False
                 if k == len(self.knowledge) - 1:
-                    return False
+                    # print('--------------------------')
+                    if operator.preconditions[p].delete:
+                        break
+                    else:
+                        return False
         # print('--------------------------')
         return True
 
@@ -141,10 +151,10 @@ class Planner:
                     return
                 operator.preconditions = copy.deepcopy(o.preconditions)
                 operator.effects = copy.deepcopy(o.effects)
-                print("*********************************** knowledge base")
-                for k in self.knowledge:
-                    print(k.__str__())
-                print('')
+                # print("*********************************** knowledge base")
+                # for k in self.knowledge:
+                #     print(k.__str__())
+                # print('')
             if x == 10:
                 break
 

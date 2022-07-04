@@ -6,6 +6,7 @@ from planner import Planner
 def spare_tire():
     planner = Planner(
         initialStates=[
+            State('Tire', ['Spare']),
             State('Tire', ['Flat']),
             State('At', ['Flat', 'Axle']),
             State('At', ['Spare', 'Trunk'])
