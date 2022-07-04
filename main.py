@@ -7,7 +7,6 @@ def spare_tire():
     planner = Planner(
         initialStates=[
             State('Tire', ['Flat']),
-            State('Tire', ['Spare']),
             State('At', ['Flat', 'Axle']),
             State('At', ['Spare', 'Trunk'])
         ],
@@ -48,7 +47,8 @@ def spare_tire():
             #          ]),
         ]
     )
-    planner.backward_search()
+    # planner.backward_search()
+    planner.forward_search()
 
 
 def blocks_world():
@@ -87,11 +87,12 @@ def blocks_world():
         ]
     )
     planner.backward_search()
+    # planner.forward_search()
 
 
 def monkey_and_bananas():
     planner = Planner(
-        initialStates=[State('At', ['Bananas', 'A']),
+        initialStates=[State('At', ['Monkey', 'A']),
                        State('At', ['Bananas', 'B']),
                        State('At', ['Box', 'C']),
                        State('Height', ['Monkey', 'Low']),
@@ -113,11 +114,11 @@ def monkey_and_bananas():
         operators=[
             Operator(name='Go'
                      , inputs=['x', 'y']
-                     , preconditions=[State('At', ['Bananas', 'x']),
+                     , preconditions=[State('At', ['Monkey', 'x']),
                                       State('Height', ['Monkey', 'Low']),
                                       State('Notequal', ['x', 'y']),
                                       ]
-                     , effects=[State('At', ['Monkey', 'Y']),
+                     , effects=[State('At', ['Monkey', 'y']),
                                 State('At', ['Monkey', 'x'], True)
                                 ]
                      ),
@@ -147,8 +148,8 @@ def monkey_and_bananas():
                               State("Height", ["Monkey", "High"], delete=True)]),
         ]
     )
-    planner.backward_search()
-
+    # planner.backward_search()
+    planner.forward_search()
 
 def dinner_date():
     pass
