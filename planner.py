@@ -1,45 +1,12 @@
 import copy
+from tabnanny import check
 
 from state import State
 from planneroperator import Operator
 
 
-def check_satisfy(effects, goal_states):
-    goal_effects = []
-
-    for goal_state in goal_states:
-        for effect in effects:
-            if effect.name == goal_state.name and goal_state.delete == effect.delete:
-                goal_effects.append(effect)
-    return goal_effects
-
-
-def set_value_to_inputs(goal_effects, goal_states, operator):
-    # print("*************", operator.name)
-    # print(goal_effects)
-    found_the_goal = False
-    inputs_dict = {}
-    # for i in operator.inputs:
-    #     inputs_dict[i] = ''
-    for i in goal_effects:
-        for j in goal_states:
-            if i.name == j.name and i.delete == j.delete:
-                for k in range(len(i.inputs)):
-                    if i.inputs[k] in operator.inputs:
-                        inputs_dict.update({i.inputs[k]: j.inputs[k]})
-                        i.inputs[k] = j.inputs[k]
-                    # print(i.inputs, j.inputs)
-                    if i.inputs == j.inputs:
-                        found_the_goal = True
-
-    # print('#', inputs_dict)
-    if found_the_goal:
-        return inputs_dict
-    return None
-
-
 class Planner:
-    def __init__(self, initialStates: [], goalStates: [], operators: []):
+    def __init__(self, initialStates, goalStates, operators):
         self.initialStates = initialStates
         self.goalStates = goalStates
         self.operators = operators
@@ -47,119 +14,208 @@ class Planner:
         self.path = []
         self.falseDict = []
 
-    def check_is_in_knowledge(self, operator):
-        # print('--------------------------- operators in check is in knowledge', operator.name)
-        for p in range(len(operator.preconditions)):
-            print(operator.preconditions[p].__str__())
-            # print('pppppppp',operator.preconditions[p].__str__())
-            for k in range(len(self.knowledge)):
-                # print('=>>>>', self.knowledge[k].__str__(), operator.preconditions[p].inputs, '<<<<==')
+    def add_my_operators(self):
+        x = []
+        for operator in self.operators:
+            operator_copy = copy.deepcopy(operator)
+            for input in operator.inputs:
+                for p in operator.preconditions:
+                    for i in input:
+                        for pi in range(len(p.inputs)):
+                            if p.inputs[pi] == i:
+                                p.inputs[pi] = input[i]
+                for e in operator.effects:
+                    for i in input:
+                        for ei in range(len(e.inputs)):
+                            if e.inputs[ei] == i:
+                                e.inputs[ei] = input[i]
+                o = copy.deepcopy(operator)
+                operator = copy.deepcopy(operator_copy)
+                x.append(o)
+        # for f in x :
+        #     print("============================================")
+        #     print("preconditionssssssssssssssss")
+        #     f. __preconditions__()
+        #     print('effecctssssssssssssssssssss')
+        #     f.__effects__()
+        self.operators = x
 
-                if operator.preconditions[p].name == self.knowledge[k].name and operator.preconditions[p].inputs == \
-                        self.knowledge[k].inputs:
-                    # print('yay')
-                    if not operator.preconditions[p].delete:
-                        break
-                    else:
-                        return False
-                if k == len(self.knowledge) - 1:
-                    # print('--------------------------')
-                    if operator.preconditions[p].delete:
-                        break
-                    else:
-                        return False
-        # print('--------------------------')
-        return True
+    def print_knowledge(self):
+        print("knowledge => ")
+        for k in self.knowledge:
+            if not k.delete:
+                print(k.__str__())
 
-    def check_knowledge(self, operator):
-        dict = {}
-        for p in operator.preconditions:
-            # print("ppppp", p.inputs)
-            for rule in self.knowledge:
-                if p.name == rule.name:
-                    operator_inputs_saved = p.inputs
-                    for i in range(len(p.inputs)):
-                        if p.inputs[i] in operator.inputs and p.inputs[i] not in dict.keys():
-                            if operator.name in self.falseDict:
-                                if rule.inputs[i] == self.falseDict[operator.name][p.inputs[i]]:
-                                    continue
-                            dict[p.inputs[i]] = rule.inputs[i]
-                            p.inputs[i] = rule.inputs[i]
-                        elif p.inputs[i] in operator.inputs and p.inputs[i] in dict.keys():
-                            p.inputs[i] = dict[p.inputs[i]]
-                    if p.inputs != rule.inputs:
-                        p.inputs = operator_inputs_saved
-
-        # here should be fixed
-        is_in_knowledge = self.check_is_in_knowledge(operator)
-        if is_in_knowledge:
-            return True, dict
-        else:
-            self.falseDict.append({operator.name: dict})
-            return False, dict
-
-    def add_knowledge(self, effects, values_given):
-        # print("#####inside add knowledge#########")
-        # print("############", values_given)
-        for e in range(len(effects)):
-            for i in range(len(effects[e].inputs)):
-                # print("$$$$$$$$$$$$$$$$$", values_given)
-                if effects[e].inputs[i] in values_given.keys():
-                    effects[e].inputs[i] = values_given[effects[e].inputs[i]]
-        # print("$$$$$$$$$$$$$$$$$efects$$$$$$$$$$$$$$$$$$$$$")
-        # for e in effects:
-        #     print(e.__str__())
-        # print("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$")
-        for e in effects:
-            if e.delete:
-                for rule in self.knowledge:
-                    if e.name == rule.name and e.inputs == rule.inputs:
-                        self.knowledge.remove(rule)
-            else:
-                # print('^^^^^^^^^^^^',e.__str__())
-                self.knowledge.append(e)
-        # print("###############################")
-
-    def check_knowledge_end(self):
-        has_goal = []
-        for rule in self.knowledge:
-            for goal in self.goalStates:
-                if rule.name == goal.name and rule.inputs == goal.inputs:
-                    has_goal.append(True)
-        if len(has_goal) == len(self.goalStates):
-            return True
-        return False
+    def print_path(self):
+        print("path => ")
+        for p in self.path:
+            print(p.__str__())
 
     def forward_search(self):
-        # print("=====================================================================")
-        # for k in self.knowledge:
-        #     print(k.__str__())
-        # print("=====================================================================")
         x = 0
+        self.add_my_operators()
+        # return
         while True:
-            print("__________________________________________________________")
-            # self.falseDict = []
             x += 1
+            print("====================================================")
+            # for k in self.knowledge:
+            #     print(k.__str__())
             for operator in self.operators:
-                o = copy.deepcopy(operator)
-                precondition_satisfied, values_given = self.check_knowledge(operator)
-                # print(operator.__str__())
-                print(operator.name, precondition_satisfied, values_given)
-                if precondition_satisfied:
-                    self.add_knowledge(operator.effects, values_given)
-                if self.check_knowledge_end():
-                    return
-                operator.preconditions = copy.deepcopy(o.preconditions)
-                operator.effects = copy.deepcopy(o.effects)
-                # print("*********************************** knowledge base")
-                # for k in self.knowledge:
-                #     print(k.__str__())
-                # print('')
+                is_in_knowledge = []
+                for p in operator.preconditions:
+                    for k in self.knowledge:
+                        if p.name == k.name and p.inputs == k.inputs and p.delete == k.delete:
+                            is_in_knowledge.append(p)
+                if len(is_in_knowledge) >= len(operator.preconditions):
+                    print("##############################", operator.name)
+                    for e in operator.effects:
+                        # if e.delete:
+                        #     for k in self.knowledge:
+                        #         if e.name == k.name and e.inputs == k.inputs:
+                        #             self.knowledge.remove(k)
+                        self.knowledge.append(e)
+
+                for k in self.knowledge:
+                    # print(k.__str__())
+                    for g in self.goalStates:
+                        if k.name == g.name and k.inputs == g.inputs and k.delete == g.delete:
+                            print(
+                                "*************************finished*********************************")
+                            self.print_knowledge()
+                            return True
             if x == 10:
                 break
 
+    def satisfy_all_goals(self, effects, goal_states):
+        # print("---------------------------------------")
+        # print("goal states => ")
+        # for g in goal_states:
+        #     print(g.__str__())
+        # print("effects => ")
+        # for e in effects:
+        #     print(e.__str__())
+        satisfies = 0
+        for g in goal_states:
+            for k in self.knowledge:
+                if not g.delete:
+                    if g.name == k.name and g.inputs == k.inputs and g.delete == k.delete:
+                        goal_states.remove(g)
+                        break
+                else:
+                    if self.check_if_not_in_knowledge(g):
+                        goal_states.remove(g)
+                        break
+
+        for e in effects:
+            for g in goal_states:
+                if e.name == g.name and e.inputs == g.inputs and e.delete == g.delete:
+                    satisfies += 1
+                    break
+        # print('final goal states => ')
+        # for g in goal_states:
+        #     print(g.__str__())
+        if satisfies > 0:
+            return True
+        return False
+
+    def check_if_in_knowledge(self, state):
+        for k in self.knowledge:
+            if k.name == state.name and k.inputs == state.inputs and k.delete == state.delete:
+                return True
+        return False
+
+    def check_if_not_in_knowledge(self, state):
+        for k in self.knowledge:
+            if k.name == state.name and k.inputs == state.inputs and k.delete == state.delete:
+                return False
+        return True
+    def check_knowledge_finished(self):
+        satisfied = 0
+        # for g in self.goalStates:
+        #     print("goal state => ", g.__str__())
+        for k in self.knowledge:
+            for g in self.goalStates:
+                if k.name == g.name and k.inputs == g.inputs and k.delete == g.delete:
+                    # print(k.name, k.inputs, k.delete)
+                    satisfied += 1
+        # print("satisfied => ", satisfied, len(self.goalStates))
+        if satisfied >= len(self.goalStates):
+            return True
+        return False
     def backward_search(self):
         print("backward search => ")
+        goal_states = self.goalStates
+        x = 0
+        while True:
+            if self.check_knowledge_finished():
+                print("********************finished***************************")
+                self.print_knowledge()
+                return True
+            x += 1
+            print("_______________________________________________________")
+            for operator in self.operators:
+                o = copy.deepcopy(operator)
+                if self.satisfy_all_goals(operator.effects, goal_states):
+                    print("##############################", operator.name)
+                    self.path.append(o.name)
+                    is_in_knowledge = []
+                    for p in operator.preconditions:
+                        for k in self.knowledge:
+                            if p.name == k.name and p.inputs == k.inputs and p.delete == k.delete:
+                                is_in_knowledge.append(p)
+                    if len(is_in_knowledge) >= len(operator.preconditions):
+                        for e in operator.effects:
+                            if e.delete:
+                                for k in self.knowledge:
+                                    if e.name == k.name and e.inputs == k.inputs:
+                                        self.knowledge.remove(k)
+                            else:
+                                self.knowledge.append(e)
+                    else:
+                        # print("##############################")
+                        print(operator.__str__())
+                        # print("##############################")
+                        operator.__preconditions__()
+                        # print("##############################")
+                        operator.__effects__()
+                        goal_states = copy.deepcopy(operator.preconditions)
+                        # self.goalStates = copy.deepcopy(operator.preconditions)
+                        # for g in goal_states:
+                        #     print(g.__str__())
+                        # print("##############################")
+                        # self.print_knowledge()
+                        self.path.append(operator)
+                        break
+            if x == 10:
+                break
+
+    def ignore_preconditions(self):
+        print("ignore preconditions => ")
+        goal_states = self.goalStates
+        dont_add_knowledge = False
+        while True:
+            print("_______________________________________________________")
+            for operator in self.operators:
+                o = copy.deepcopy(operator)
+                goal_effects = check_satisfy(operator.effects, goal_states)
+                if len(goal_effects) > 0:
+                    end_search, values = self.check_knowledge(operator)
+                    if end_search and self.check_knowledge_end:
+                        print(operator.name, values)
+                        print("#########", operator.__str__())
+                        return
+                    else:
+                        self.path.append(operator)
+                        print(operator.name, values)
+                        print("#########", operator.__str__())
+                        self.add_knowledge(operator.effects, values)
+                        goal_states = operator.preconditions
+                operator.preconditions = copy.deepcopy(o.preconditions)
+                operator.effects = copy.deepcopy(o.effects)
+            dont_add_knowledge = True
+
+    def ignore_delete_lists(self):
+        print("ignore delete lists => ")
         goal_states = self.goalStates
         dont_add_knowledge = False
         while True:
@@ -181,9 +237,3 @@ class Planner:
                         goal_states = operator.preconditions
                 operator = o
             dont_add_knowledge = True
-
-    def ignore_preconditions(self):
-        pass
-
-    def ignore_delete_lists(self):
-        pass
